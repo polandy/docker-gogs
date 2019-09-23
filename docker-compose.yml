@@ -1,0 +1,41 @@
+version: '2'
+
+services:
+  db:
+    image: postgres:10-alpine
+    restart: always
+    volumes:
+      - ${DOCKER_DATA}/gogs/db:/var/lib/postgresql/data
+    env_file:
+      - db.env
+    networks:
+      - gogs-internal
+  app:
+    image: gogs/gogs:0.11.91
+    restart: always
+    ports:
+      - "1022:22"
+    links:
+      - db
+    volumes:
+      - ${DOCKER_DATA}/gogs/data:/data
+    environment:
+      - POSTGRES_HOST=db
+    env_file:
+      - db.env
+    depends_on:
+      - db
+    networks:
+      - proxy
+      - gogs-internal
+    labels:
+      - "traefik.docker.network=proxy"
+      - "traefik.enable=true"
+      - "traefik.backend=gogs"
+      - "traefik.frontend.rule=Host:gogs.${DOMAIN}"
+      - "traefik.port=3000"
+networks:
+  gogs-internal:
+    external: false
+  proxy:
+    external: true
